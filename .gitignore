@@ -19,6 +19,7 @@ profile.cov
 
 # Dependency directories (remove the comment below to include it)
 vendor/
+bin/
 
 # Go workspace file
 go.work
@@ -31,3 +32,11 @@ go.work.sum
 # .idea/
 .vscode/
 dev.md
+
+#others
+*.jpg
+*.jpeg
+*.png
+*.tiff
+*.mp4
+*.mov

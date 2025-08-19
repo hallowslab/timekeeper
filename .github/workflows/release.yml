@@ -1,0 +1,112 @@
+# .github/workflows/release.yml
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v1.0.0, v1.2.3-beta, etc.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Windows builds (bundled with ExifTool)
+          - goos: windows
+            goarch: amd64
+            binary_suffix: '.exe'
+            build_tags: 'bundled'
+            asset_name: 'timekeeper-windows-amd64.exe'
+          - goos: windows
+            goarch: arm64
+            binary_suffix: '.exe'
+            build_tags: 'bundled'
+            asset_name: 'timekeeper-windows-arm64.exe'
+          
+          # Linux builds (system ExifTool)
+          - goos: linux
+            goarch: amd64
+            binary_suffix: ''
+            build_tags: ''
+            asset_name: 'timekeeper-linux-amd64'
+          - goos: linux
+            goarch: arm64
+            binary_suffix: ''
+            build_tags: ''
+            asset_name: 'timekeeper-linux-arm64'
+          
+          # macOS builds (system ExifTool)
+          - goos: darwin
+            goarch: amd64
+            binary_suffix: ''
+            build_tags: ''
+            asset_name: 'timekeeper-macos-amd64'
+          - goos: darwin
+            goarch: arm64
+            binary_suffix: ''
+            build_tags: ''
+            asset_name: 'timekeeper-macos-arm64'
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'  # Adjust to your Go version
+
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        if [ -n "${{ matrix.build_tags }}" ]; then
+          go build -tags "${{ matrix.build_tags }}" -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" -o ${{ matrix.asset_name }} .
+        else
+          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" -o ${{ matrix.asset_name }} .
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: ${{ matrix.asset_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases
+    
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v5
+      with:
+        path: ./artifacts
+
+    - name: Get version and changelog
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: Release ${{ steps.version.outputs.VERSION }}
+        body_path: current_changelog.txt
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'rc') }}
+        files: |
+          artifacts/*/timekeeper-*
+        token: ${{ secrets.GITHUB_TOKEN }}
