@@ -66,20 +66,6 @@ jobs:
     - name: Get version from tag
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-    
-    #https://github.com/actions/runner-images/issues/8584
-    - name: Install winget on Windows
-      if: ${{ matrix.goos == 'windows' && matrix.goarch == 'amd64' }}
-      shell:  pwsh
-      run: |
-        $progressPreference = 'silentlyContinue'
-        Write-Information "Downloading WinGet and its dependencies..."
-        Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
-        Invoke-WebRequest -Uri https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx -OutFile Microsoft.VCLibs.x64.14.00.Desktop.appx
-        Invoke-WebRequest -Uri https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.7.3/Microsoft.UI.Xaml.2.7.x64.appx -OutFile Microsoft.UI.Xaml.2.7.x64.appx
-        Add-AppxPackage Microsoft.VCLibs.x64.14.00.Desktop.appx
-        Add-AppxPackage Microsoft.UI.Xaml.2.7.x64.appx
-        Add-AppxPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
 
     # Windows only: install ExifTool with winget
     - name: Install ExifTool on Windows
