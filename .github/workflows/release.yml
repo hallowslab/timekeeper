@@ -60,17 +60,27 @@ jobs:
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-    - name: Download ExifTool for Windows
+    - name: Download and prepare ExifTool for Windows
       if: matrix.goos == 'windows'
       shell: pwsh
       run: |
+        # Download the ExifTool ZIP
         $url = "https://downloads.sourceforge.net/project/exiftool/exiftool/13.34/exiftool-13.34_64.zip"
         $output = "exiftool.zip"
         Invoke-WebRequest -Uri $url -OutFile $output
-        unzip -q exiftool.zip -d exiftool
+
+        # Extract ZIP to temporary folder
+        Expand-Archive -Path $output -DestinationPath exiftool -Force
+
+        # Ensure target directories exist
+        mkdir -p bin/windows
         mkdir -p bin/windows/exiftool_files
-        mv 'exiftool/exiftool(-k).exe' bin/windows/exiftool.exe
-        cp -r exiftool/lib/* bin/windows/exiftool_files/ || true
+
+        # Move the main exe (rename to exiftool.exe)
+        mv "exiftool\exiftool(-k).exe" "bin/windows/exiftool.exe"
+
+        # Copy all supporting files (exiftool_files folder)
+        cp -r "exiftool\exiftool_files\*" "bin/windows/exiftool_files/"
 
     - name: Build binary
       env:
