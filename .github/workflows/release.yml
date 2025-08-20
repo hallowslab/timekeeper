@@ -8,45 +8,52 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          # Windows builds (bundled with ExifTool)
+          # Windows builds
           - goos: windows
             goarch: amd64
+            runner: windows-latest
             binary_suffix: '.exe'
             build_tags: 'bundled'
             asset_name: 'timekeeper-windows-amd64.exe'
           - goos: windows
             goarch: arm64
+            runner: windows-latest
             binary_suffix: '.exe'
             build_tags: 'bundled'
             asset_name: 'timekeeper-windows-arm64.exe'
-          
-          # Linux builds (system ExifTool)
+
+          # Linux builds
           - goos: linux
             goarch: amd64
+            runner: ubuntu-latest
             binary_suffix: ''
             build_tags: ''
             asset_name: 'timekeeper-linux-amd64'
           - goos: linux
             goarch: arm64
+            runner: ubuntu-latest
             binary_suffix: ''
             build_tags: ''
             asset_name: 'timekeeper-linux-arm64'
-          
-          # macOS builds (system ExifTool)
+
+          # macOS builds
           - goos: darwin
             goarch: amd64
+            runner: macos-latest
             binary_suffix: ''
             build_tags: ''
             asset_name: 'timekeeper-macos-amd64'
           - goos: darwin
             goarch: arm64
+            runner: macos-latest
             binary_suffix: ''
             build_tags: ''
             asset_name: 'timekeeper-macos-arm64'
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
     - uses: actions/checkout@v5
@@ -54,37 +61,37 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.25'  # Adjust to your Go version
+        go-version: '1.25'
 
     - name: Get version from tag
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-    - name: Install ExifTool via winget and prepare for build
+    # Windows only: install ExifTool with winget
+    - name: Install ExifTool on Windows
       if: matrix.goos == 'windows'
       shell: pwsh
       run: |
-        # Install ExifTool via winget (system-wide)
+        Write-Host "Installing ExifTool via winget..."
         winget install --id=ExifTool.ExifTool -e --accept-package-agreements --accept-source-agreements
 
-        # Locate ExifTool installation folder
         $installPath = "$env:LOCALAPPDATA\Programs\ExifTool"
-
         if (-Not (Test-Path $installPath)) {
-            Write-Error "ExifTool installation not found in $installPath"
+            Write-Error "ExifTool installation not found at $installPath"
             exit 1
         }
 
-        # Ensure target directories for bundling
+        # Prepare directories for bundling
         New-Item -ItemType Directory -Force -Path bin/windows
         New-Item -ItemType Directory -Force -Path bin/windows/exiftool_files
 
-        # Copy the main executable
+        # Copy main exe
         Copy-Item "$installPath\ExifTool.exe" "bin/windows/exiftool.exe" -Force
 
-        # Copy supporting files (exiftool_files folder)
+        # Copy supporting files
         Copy-Item "$installPath\exiftool_files\*" "bin/windows/exiftool_files\" -Recurse -Force
 
+    # Build Go binary
     - name: Build binary
       env:
         GOOS: ${{ matrix.goos }}
@@ -92,9 +99,12 @@ jobs:
         CGO_ENABLED: 0
       run: |
         if [ -n "${{ matrix.build_tags }}" ]; then
-          go build -tags "${{ matrix.build_tags }}" -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" -o ${{ matrix.asset_name }} .
+          go build -tags "${{ matrix.build_tags }}" \
+            -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" \
+            -o ${{ matrix.asset_name }} .
         else
-          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" -o ${{ matrix.asset_name }} .
+          go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" \
+            -o ${{ matrix.asset_name }} .
         fi
 
     - name: Upload artifact
@@ -102,35 +112,3 @@ jobs:
       with:
         name: ${{ matrix.asset_name }}
         path: ${{ matrix.asset_name }}
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Required for creating releases
-    
-    steps:
-    - uses: actions/checkout@v5
-
-    - name: Download all artifacts
-      uses: actions/download-artifact@v5
-      with:
-        path: ./artifacts
-
-    - name: Get version
-      id: version
-      run: |
-        VERSION=${GITHUB_REF#refs/tags/}
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ steps.version.outputs.VERSION }}
-        name: Release ${{ steps.version.outputs.VERSION }}
-        draft: false
-        prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'rc') }}
-        files: |
-          artifacts/*/timekeeper-*
-        token: ${{ secrets.TIMEKEEPER }}
