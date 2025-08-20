@@ -105,12 +105,8 @@ jobs:
         # Copy supporting files
         Copy-Item "$installPath\exiftool_files\*" "bin/windows/exiftool_files\" -Recurse -Force
 
-    # Build Go binary
-    - name: Build binary
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-        CGO_ENABLED: 0
+    - name: Build binary (Linux/macOS)
+      if: matrix.goos != 'windows'
       run: |
         if [ -n "${{ matrix.build_tags }}" ]; then
           go build -tags "${{ matrix.build_tags }}" \
@@ -120,6 +116,20 @@ jobs:
           go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" \
             -o ${{ matrix.asset_name }} .
         fi
+
+    - name: Build binary (Windows)
+      if: matrix.goos == 'windows'
+      shell: pwsh
+      run: |
+        if ($env:BUILD_TAGS -ne "") {
+            go build -tags $env:BUILD_TAGS -ldflags "-s -w -X main.version=$env:VERSION" -o $env:ASSET_NAME .
+        } else {
+            go build -ldflags "-s -w -X main.version=$env:VERSION" -o $env:ASSET_NAME .
+        }
+      env:
+        VERSION: ${{ steps.version.outputs.VERSION }}
+        ASSET_NAME: ${{ matrix.asset_name }}
+        BUILD_TAGS: ${{ matrix.build_tags }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
