@@ -92,7 +92,7 @@ jobs:
       with:
         path: ./artifacts
 
-    - name: Get version and changelog
+    - name: Get version
       id: version
       run: |
         VERSION=${GITHUB_REF#refs/tags/}
@@ -104,9 +104,8 @@ jobs:
       with:
         tag_name: ${{ steps.version.outputs.VERSION }}
         name: Release ${{ steps.version.outputs.VERSION }}
-        body_path: current_changelog.txt
         draft: false
         prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'rc') }}
         files: |
           artifacts/*/timekeeper-*
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.TIMEKEEPER }}
