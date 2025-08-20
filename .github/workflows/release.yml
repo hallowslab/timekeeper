@@ -64,12 +64,12 @@ jobs:
       if: matrix.goos == 'windows'
       shell: pwsh
       run: |
-        $url = "https://sourceforge.net/projects/exiftool/files/exiftool-13.34_64.zip/download"
+        $url = "https://downloads.sourceforge.net/project/exiftool/exiftool/13.34/exiftool-13.34_64.zip"
         $output = "exiftool.zip"
         Invoke-WebRequest -Uri $url -OutFile $output
         unzip -q exiftool.zip -d exiftool
         mkdir -p bin/windows/exiftool_files
-        mv exiftool/exiftool(-k).exe bin/windows/exiftool.exe
+        mv 'exiftool/exiftool(-k).exe' bin/windows/exiftool.exe
         cp -r exiftool/lib/* bin/windows/exiftool_files/ || true
 
     - name: Build binary
