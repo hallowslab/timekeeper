@@ -60,10 +60,13 @@ jobs:
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-    - name: Download ExifTool (Windows only)
-      if: ${{ matrix.goos == 'windows' }}
+    - name: Download ExifTool for Windows
+      if: matrix.goos == 'windows'
+      shell: pwsh
       run: |
-        curl -L https://sourceforge.net/projects/exiftool/files/exiftool-13.34_64.zip/download -o exiftool.zip
+        $url = "https://sourceforge.net/projects/exiftool/files/exiftool-13.34_64.zip/download"
+        $output = "exiftool.zip"
+        Invoke-WebRequest -Uri $url -OutFile $output
         unzip -q exiftool.zip -d exiftool
         mkdir -p bin/windows/exiftool_files
         mv exiftool/exiftool(-k).exe bin/windows/exiftool.exe
