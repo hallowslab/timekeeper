@@ -60,25 +60,30 @@ jobs:
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-    - name: Download and prepare ExifTool for Windows
+    - name: Install ExifTool via winget and prepare for build
       if: matrix.goos == 'windows'
       shell: pwsh
       run: |
-        # Download the ExifTool ZIP
-        curl -L https://downloads.sourceforge.net/project/exiftool/exiftool/13.34/exiftool-13.34_64.zip -o exiftool.zip
+        # Install ExifTool via winget (system-wide)
+        winget install --id=ExifTool.ExifTool -e --accept-package-agreements --accept-source-agreements
 
-        # Extract ZIP to temporary folder
-        Expand-Archive -Path exiftool.zip -DestinationPath exiftool -Force
+        # Locate ExifTool installation folder
+        $installPath = "$env:LOCALAPPDATA\Programs\ExifTool"
 
-        # Ensure target directories exist
-        mkdir -p bin/windows
-        mkdir -p bin/windows/exiftool_files
+        if (-Not (Test-Path $installPath)) {
+            Write-Error "ExifTool installation not found in $installPath"
+            exit 1
+        }
 
-        # Move the main exe (rename to exiftool.exe)
-        mv "exiftool\exiftool(-k).exe" "bin/windows/exiftool.exe"
+        # Ensure target directories for bundling
+        New-Item -ItemType Directory -Force -Path bin/windows
+        New-Item -ItemType Directory -Force -Path bin/windows/exiftool_files
 
-        # Copy all supporting files (exiftool_files folder)
-        cp -r "exiftool\exiftool_files\*" "bin/windows/exiftool_files/"
+        # Copy the main executable
+        Copy-Item "$installPath\ExifTool.exe" "bin/windows/exiftool.exe" -Force
+
+        # Copy supporting files (exiftool_files folder)
+        Copy-Item "$installPath\exiftool_files\*" "bin/windows/exiftool_files\" -Recurse -Force
 
     - name: Build binary
       env:
