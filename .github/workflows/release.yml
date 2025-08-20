@@ -12,12 +12,12 @@ jobs:
       matrix:
         include:
           # Windows builds
-          # - goos: windows
-          #   goarch: amd64
-          #   runner: windows-latest
-          #   binary_suffix: '.exe'
-          #   build_tags: 'bundled'
-          #   asset_name: 'timekeeper_bundled-windows-amd64.exe'
+          - goos: windows
+            goarch: amd64
+            runner: windows-latest
+            binary_suffix: '.exe'
+            build_tags: 'bundled'
+            asset_name: 'timekeeper_bundled-windows-amd64.exe'
           - goos: windows
             goarch: amd64
             runner: windows-latest
@@ -84,6 +84,58 @@ jobs:
           go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" \
             -o ${{ matrix.asset_name }} .
         fi
+
+    
+    - name: Download ExifTool (Windows bundled only)
+      if: matrix.runner == 'windows-latest'
+      shell: pwsh
+      run: |
+        Write-Host "Downloading ExifTool for Windows..."
+        $exiftoolVersion = "13.34"
+        
+        # Create directory structure
+        New-Item -ItemType Directory -Force -Path "bin\windows"
+        
+        # Download ExifTool
+        $url = "https://exiftool.org/exiftool-$exiftoolVersion`_64.zip"
+        Write-Host "Downloading from: $url"
+        Invoke-WebRequest -Uri $url -OutFile "exiftool-windows.zip"
+        
+        # Extract
+        Expand-Archive -Path "exiftool-windows.zip" -DestinationPath "temp-exiftool" -Force
+        
+        # Navigate into the extracted folder
+        $extractedFolder = Get-ChildItem "temp-exiftool" -Directory | Select-Object -First 1
+        Write-Host "Found extracted folder: $($extractedFolder.Name)"
+        $exiftoolPath = $extractedFolder.FullName
+        
+        # Find and copy the executable
+        if (Test-Path "$exiftoolPath\exiftool(-k).exe") {
+            Write-Host "Found exiftool(-k).exe, copying as exiftool.exe"
+            Copy-Item "$exiftoolPath\exiftool(-k).exe" "bin\windows\exiftool.exe"
+        } elseif (Test-Path "$exiftoolPath\exiftool.exe") {
+            Write-Host "Found exiftool.exe"
+            Copy-Item "$exiftoolPath\exiftool.exe" "bin\windows\exiftool.exe"
+        } else {
+            Write-Host "Looking for ExifTool executable in $exiftoolPath..."
+            Get-ChildItem $exiftoolPath -Filter "*exiftool*" -File
+            exit 1
+        }
+        
+        # Copy exiftool_files directory if it exists
+        if (Test-Path "$exiftoolPath\exiftool_files") {
+            Write-Host "Copying exiftool_files directory"
+            Copy-Item -Path "$exiftoolPath\exiftool_files" -Destination "bin\windows\" -Recurse
+        } else {
+            Write-Host "No exiftool_files directory found"
+            Write-Host "Contents of $exiftoolPath :"
+            Get-ChildItem $exiftoolPath
+        }
+        
+        # Clean up
+        Remove-Item -Path "temp-exiftool" -Recurse -Force
+        Remove-Item -Path "exiftool-windows.zip" -Force
+        
 
     - name: Build binary (Windows)
       if: matrix.goos == 'windows'
