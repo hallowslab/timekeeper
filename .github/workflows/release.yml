@@ -69,7 +69,7 @@ jobs:
     
     #https://github.com/actions/runner-images/issues/8584
     - name: Install winget on Windows
-      if: matrix.goos == 'windows'
+      if: ${{ matrix.goos == 'windows' && matrix.goarch == 'amd64' }}
       shell:  pwsh
       run: |
         $progressPreference = 'silentlyContinue'
@@ -83,7 +83,7 @@ jobs:
 
     # Windows only: install ExifTool with winget
     - name: Install ExifTool on Windows
-      if: matrix.goos == 'windows'
+      if: ${{ matrix.goos == 'windows' && matrix.goarch == 'amd64' }}
       shell: pwsh
       run: |
         Write-Host "Installing ExifTool via winget..."
