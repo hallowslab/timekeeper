@@ -17,12 +17,12 @@ jobs:
             runner: windows-latest
             binary_suffix: '.exe'
             build_tags: 'bundled'
-            asset_name: 'timekeeper-windows-amd64.exe'
+            asset_name: 'timekeeper_bundled-windows-amd64.exe'
           - goos: windows
             goarch: arm64
             runner: windows-latest
             binary_suffix: '.exe'
-            build_tags: 'bundled'
+            build_tags: ''
             asset_name: 'timekeeper-windows-arm64.exe'
 
           # Linux builds
