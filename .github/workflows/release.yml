@@ -184,5 +184,5 @@ jobs:
           draft: false
           prerelease: ${{ contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'rc') }}
           files: |
-            artifacts/*/timekeeper-*
+            artifacts/*/timekeeper*
           token: ${{ secrets.TIMEKEEPER }}
