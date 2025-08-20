@@ -33,11 +33,18 @@ func main() {
 	var source string
 	var destination string
 	var dryRun bool
+	var showVersion bool
 
 	flag.StringVar(&source, "s", "", "Source file or directory")
 	flag.StringVar(&destination, "d", "", "Destination directory")
 	flag.BoolVar(&dryRun, "dry-run", false, "Show what would be done")
+	flag.BoolVar(&showVersion, "version", false, "Show version information")
 	flag.Parse()
+
+	if showVersion {
+		printVersion()
+		return
+	}
 
 	if source == "" || destination == "" {
 		log.Fatal("Source (-s) and destination (-d) cannot be empty")
