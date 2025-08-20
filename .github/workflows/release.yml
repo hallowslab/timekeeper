@@ -65,9 +65,7 @@ jobs:
       shell: pwsh
       run: |
         # Download the ExifTool ZIP
-        $url = "https://downloads.sourceforge.net/project/exiftool/exiftool/13.34/exiftool-13.34_64.zip"
-        $output = "exiftool.zip"
-        Invoke-WebRequest -Uri $url -OutFile $output
+        curl -L https://downloads.sourceforge.net/project/exiftool/exiftool/13.34/exiftool-13.34_64.zip -o exiftool.zip
 
         # Extract ZIP to temporary folder
         Expand-Archive -Path $output -DestinationPath exiftool -Force
