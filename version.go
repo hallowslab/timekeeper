@@ -33,10 +33,18 @@ func GetVersion() Version {
 	}
 }
 
+// shortCommit returns a shortened version of the commit hash
+func (v Version) ShortCommit() string {
+	if len(v.Commit) > 8 {
+		return v.Commit[:8]
+	}
+	return v.Commit
+}
+
 // String returns a formatted version string
 func (v Version) String() string {
 	return fmt.Sprintf("%s (%s) built on %s with %s for %s",
-		v.Version, v.Commit[:8], v.BuildTime, v.GoVersion, v.Platform)
+		v.Version, v.ShortCommit(), v.BuildTime, v.GoVersion, v.Platform)
 }
 
 // main.go additions
