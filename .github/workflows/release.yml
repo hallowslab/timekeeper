@@ -60,6 +60,15 @@ jobs:
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
+    - name: Download ExifTool (Windows only)
+      if: ${{ matrix.goos == 'windows' }}
+      run: |
+        curl -L https://sourceforge.net/projects/exiftool/files/exiftool-13.34_64.zip/download -o exiftool.zip
+        unzip -q exiftool.zip -d exiftool
+        mkdir -p bin/windows/exiftool_files
+        mv exiftool/exiftool(-k).exe bin/windows/exiftool.exe
+        cp -r exiftool/lib/* bin/windows/exiftool_files/ || true
+
     - name: Build binary
       env:
         GOOS: ${{ matrix.goos }}
