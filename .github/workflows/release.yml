@@ -67,29 +67,37 @@ jobs:
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-    # Windows only: install ExifTool with winget
-    - name: Install ExifTool on Windows
-      if: ${{ matrix.goos == 'windows' && matrix.goarch == 'amd64' }}
+    - name: Download and prepare ExifTool for Windows
+      if: matrix.goos == 'windows'
       shell: pwsh
       run: |
-        Write-Host "Installing ExifTool via winget..."
-        winget install --id=ExifTool.ExifTool -e --accept-package-agreements --accept-source-agreements
-
-        $installPath = "$env:LOCALAPPDATA\Programs\ExifTool"
-        if (-Not (Test-Path $installPath)) {
-            Write-Error "ExifTool installation not found at $installPath"
-            exit 1
+        # Download the ExifTool ZIP
+        $url = "https://downloads.sourceforge.net/project/exiftool/exiftool/13.34/exiftool-13.34_64.zip"
+        $output = "exiftool.zip"
+        # Retry download up to 3 times
+        for ($i=0; $i -lt 3; $i++) {
+            try {
+                Invoke-WebRequest -Uri $url -OutFile $output -MaximumRedirection 5
+                break
+            } catch {
+                Write-Host "Download failed, retrying..."
+                Start-Sleep -Seconds 5
+            }
         }
 
-        # Prepare directories for bundling
+        # Extract ZIP to temporary folder
+        Expand-Archive -Path $output -DestinationPath exiftool -Force
+
+        # Ensure target directories exist
         New-Item -ItemType Directory -Force -Path bin/windows
         New-Item -ItemType Directory -Force -Path bin/windows/exiftool_files
 
-        # Copy main exe
-        Copy-Item "$installPath\ExifTool.exe" "bin/windows/exiftool.exe" -Force
+        # Move the main exe (rename to exiftool.exe)
+        Move-Item -Path "exiftool\exiftool(-k).exe" -Destination "bin/windows/exiftool.exe" -Force
 
-        # Copy supporting files
-        Copy-Item "$installPath\exiftool_files\*" "bin/windows/exiftool_files\" -Recurse -Force
+        # Copy all supporting files (exiftool_files folder)
+        Copy-Item -Path "exiftool\exiftool_files\*" -Destination "bin/windows/exiftool_files" -Recurse -Force
+
 
     - name: Build binary (Linux/macOS)
       if: matrix.goos != 'windows'
