@@ -68,7 +68,7 @@ jobs:
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
     - name: Download and prepare ExifTool for Windows
-      if: matrix.goos == 'windows'
+      if: ${{ matrix.goos == 'windows' && matrix.goarch == 'amd64' }}
       shell: pwsh
       run: |
         # Download the ExifTool ZIP
