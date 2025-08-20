@@ -12,12 +12,18 @@ jobs:
       matrix:
         include:
           # Windows builds
+          # - goos: windows
+          #   goarch: amd64
+          #   runner: windows-latest
+          #   binary_suffix: '.exe'
+          #   build_tags: 'bundled'
+          #   asset_name: 'timekeeper_bundled-windows-amd64.exe'
           - goos: windows
             goarch: amd64
             runner: windows-latest
             binary_suffix: '.exe'
-            build_tags: 'bundled'
-            asset_name: 'timekeeper_bundled-windows-amd64.exe'
+            build_tags: ''
+            asset_name: 'timekeeper-windows-amd64.exe'
           - goos: windows
             goarch: arm64
             runner: windows-latest
@@ -66,38 +72,6 @@ jobs:
     - name: Get version from tag
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-    - name: Download and prepare ExifTool for Windows
-      if: ${{ matrix.goos == 'windows' && matrix.goarch == 'amd64' }}
-      shell: pwsh
-      run: |
-        # Download the ExifTool ZIP
-        $url = "https://downloads.sourceforge.net/project/exiftool/exiftool/13.34/exiftool-13.34_64.zip"
-        $output = "exiftool.zip"
-        # Retry download up to 3 times
-        for ($i=0; $i -lt 3; $i++) {
-            try {
-                Invoke-WebRequest -Uri $url -OutFile $output -MaximumRedirection 5
-                break
-            } catch {
-                Write-Host "Download failed, retrying..."
-                Start-Sleep -Seconds 5
-            }
-        }
-
-        # Extract ZIP to temporary folder
-        Expand-Archive -Path $output -DestinationPath exiftool -Force
-
-        # Ensure target directories exist
-        New-Item -ItemType Directory -Force -Path bin/windows
-        New-Item -ItemType Directory -Force -Path bin/windows/exiftool_files
-
-        # Move the main exe (rename to exiftool.exe)
-        Move-Item -Path "exiftool\exiftool(-k).exe" -Destination "bin/windows/exiftool.exe" -Force
-
-        # Copy all supporting files (exiftool_files folder)
-        Copy-Item -Path "exiftool\exiftool_files\*" -Destination "bin/windows/exiftool_files" -Recurse -Force
-
 
     - name: Build binary (Linux/macOS)
       if: matrix.goos != 'windows'
